@@ -1,0 +1,170 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workflows_tollucity02_name": {
+            "defaultValue": "tollucity02",
+            "type": "string"
+        },
+        "workflows_tollucity02_parameters_isDev": {
+            "defaultValue": true,
+            "type": "Bool"
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2017-07-01",
+            "dependsOn": [],
+            "location": "eastus",
+            "name": "[parameters('workflows_tollucity02_name')]",
+            "properties": {
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "isDev": {
+                            "defaultValue": true,
+                            "type": "Bool"
+                        }
+                    },
+                    "triggers": {
+                        "manual": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "method": "POST",
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Catch-scope": {
+                            "actions": {
+                                "Response_-_Failed": {
+                                    "runAfter": {},
+                                    "type": "Response",
+                                    "kind": "Http",
+                                    "inputs": {
+                                        "body": "operation failed",
+                                        "statusCode": 500
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Try-scope": [
+                                    "TimedOut",
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Scope"
+                        },
+                        "Try-scope": {
+                            "actions": {
+                                "Compose": {
+                                    "runAfter": {
+                                        "GetWOTpl": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose",
+                                    "inputs": "@setProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(\r\nsetProperty(body('GetWOTpl'),\r\n'BrokenRulesDisplayString',null), \r\n'M_BrokenRules', null), \r\n'M_LucityState', null), \r\n'PropertiesThatAreDynamicallyReadonly', null), \r\n'CategoryCode', 'FL'),\r\n'ProblemCode', 'FL12'),\r\n'DepartmentCode', '1'), \r\n'DivisionCode', '315'),\r\n'User25Date', body('GetWOTpl').WorkOrderCreationDate),\r\n'User25Time', body('GetWOTpl').WorkOrderCreationTime),\r\n'FromRequestComment', triggerOutputs()['queries']['issue']),\r\n'User12', triggerOutputs()['queries']['meter']),\r\n'User14', triggerOutputs()['queries']['name']),\r\n'User15', triggerOutputs()['queries']['phone']),\r\n'User22', triggerOutputs()['queries']['email']),\r\n'WorkOrderUser48', triggerOutputs()['queries']['vehicle'])"
+                                },
+                                "GetWOTpl": {
+                                    "runAfter": {
+                                        "Queries": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Http",
+                                    "inputs": {
+                                        "authentication": {
+                                            "password": "bZ5%&Vk8^WuCwQYQ",
+                                            "type": "Basic",
+                                            "username": "aip"
+                                        },
+                                        "method": "GET",
+                                        "queries": {
+                                            "format": "json"
+                                        },
+                                        "uri": "https://leesburgva.lucitycloud.com/LucityRESTAPI/Work/WorkOrders/$new"
+                                    }
+                                },
+                                "PostIfNotDev": {
+                                    "actions": {},
+                                    "runAfter": {
+                                        "Compose": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "else": {
+                                        "actions": {
+                                            "PostWO": {
+                                                "runAfter": {},
+                                                "type": "Http",
+                                                "inputs": {
+                                                    "authentication": {
+                                                        "password": "bZ5%&Vk8^WuCwQYQ",
+                                                        "type": "Basic",
+                                                        "username": "aip"
+                                                    },
+                                                    "body": "@outputs('Compose')",
+                                                    "method": "POST",
+                                                    "queries": {
+                                                        "format": "json"
+                                                    },
+                                                    "uri": "https://leesburgva.lucitycloud.com/LucityRESTAPI/Work/WorkOrders/"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "expression": {
+                                        "and": [
+                                            {
+                                                "equals": [
+                                                    "@parameters('isDev')",
+                                                    true
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "type": "If"
+                                },
+                                "Queries": {
+                                    "runAfter": {},
+                                    "type": "Compose",
+                                    "inputs": "@triggerOutputs()['queries']"
+                                },
+                                "Response": {
+                                    "runAfter": {
+                                        "PostIfNotDev": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Response",
+                                    "kind": "Http",
+                                    "inputs": {
+                                        "body": "@outputs('Compose')",
+                                        "statusCode": 200
+                                    }
+                                }
+                            },
+                            "runAfter": {},
+                            "type": "Scope"
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "isDev": {
+                        "value": "[parameters('workflows_tollucity02_parameters_isDev')]"
+                    }
+                },
+                "state": "Enabled"
+            },
+            "scale": null,
+            "tags": {},
+            "type": "Microsoft.Logic/workflows"
+        }
+    ],
+    "variables": {}
+}
